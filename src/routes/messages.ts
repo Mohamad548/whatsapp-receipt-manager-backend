@@ -1,10 +1,10 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { getAllMessages, getMessageById, updateMessageStatus } from '../services/messageService.js';
 
 const router = express.Router();
 
 // GET: دریافت تمام پیام‌ها
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     const messages = await getAllMessages();
     res.json(messages);
@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET: دریافت یک پیام خاص
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const message = await getMessageById(req.params.id);
     if (!message) {
@@ -29,7 +29,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // PATCH: به‌روزرسانی وضعیت پیام
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
     if (!status) {

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { saveMessage } from '../services/messageService.js';
 
 const router = express.Router();
@@ -7,7 +7,7 @@ const router = express.Router();
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'MySecret123';
 
 // GET: تایید Webhook توسط Meta
-router.get('/', (req, res) => {
+router.get('/', (req: Request, res: Response) => {
   const mode = req.query['hub.mode'] as string;
   const token = req.query['hub.verify_token'] as string;
   const challenge = req.query['hub.challenge'] as string;
@@ -22,7 +22,7 @@ router.get('/', (req, res) => {
 });
 
 // POST: دریافت پیام‌های جدید از WhatsApp
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const body = req.body;
     
