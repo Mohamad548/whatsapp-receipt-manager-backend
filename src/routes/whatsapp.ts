@@ -26,16 +26,26 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const body = req.body;
     
+    // Log تمام درخواست‌های ورودی برای دیباگ
+    console.log('📥 Webhook received:', JSON.stringify(body, null, 2));
+    
     // بررسی ساختار پیام واتساپ
+    console.log('🔍 Body object:', body.object);
+    
     if (body.object === 'whatsapp_business_account') {
       const entries = body.entry;
+      console.log('📋 Entries:', entries?.length || 0);
       
       for (const entry of entries) {
         const changes = entry.changes;
+        console.log('🔄 Changes:', changes?.length || 0);
         
         for (const change of changes) {
+          console.log('📝 Change field:', change.field);
+          
           if (change.field === 'messages') {
             const value = change.value;
+            console.log('💬 Value messages:', value.messages ? 'exists' : 'missing');
             
             // اگر پیام جدیدی دریافت شده
             if (value.messages) {
@@ -73,9 +83,14 @@ router.post('/', async (req: Request, res: Response) => {
               
               // TODO: اگر تصویر یا فایل دارید، باید از WhatsApp API آن را دانلود کنید
             }
+          } else {
+            console.log('⚠️  Change field is not "messages":', change.field);
           }
         }
       }
+    } else {
+      console.log('⚠️  Body object is not "whatsapp_business_account":', body.object);
+      console.log('📦 Full body structure:', Object.keys(body));
     }
 
     return res.status(200).json({ status: 'ok' });
