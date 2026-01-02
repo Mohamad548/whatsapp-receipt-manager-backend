@@ -9,6 +9,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
+    "db:create": "tsx scripts/create-database.ts",
+    "db:setup": "tsx scripts/setup-database.ts",
     "db:init": "tsx db/init-database.ts",
     "db:schema": "echo 'Use db/schema.sql file to create tables manually'"
   },
