@@ -5,6 +5,12 @@ dotenv.config();
 
 const { Pool } = pg;
 
+// بررسی وجود DATABASE_URL
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL is not set in environment variables');
+  console.log('💡 Please set DATABASE_URL in your .env file or environment variables');
+}
+
 // اتصال به دیتابیس PostgreSQL
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
