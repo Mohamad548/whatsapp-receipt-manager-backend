@@ -43,13 +43,18 @@ router.post('/', async (req: Request, res: Response) => {
               const contact = value.contacts?.[0];
               
               // استخراج اطلاعات پیام
+              // تبدیل timestamp از ثانیه به میلی‌ثانیه (WhatsApp timestamp در ثانیه است)
+              const messageTimestamp = message.timestamp 
+                ? new Date(parseInt(message.timestamp) * 1000).toISOString()
+                : new Date().toISOString();
+              
               const messageData = {
                 id: message.id,
                 wa_id: value.metadata?.phone_number_id,
                 sender_phone: message.from,
                 sender_name: contact?.profile?.name || 'نامشخص',
                 content: message.text?.body || message.caption || '',
-                timestamp: new Date(parseInt(value.metadata?.timestamp || Date.now().toString()) * 1000).toISOString(),
+                timestamp: messageTimestamp,
                 status: 'NEW',
                 media_url: message.image?.id || message.document?.id || null,
                 mime_type: message.image?.mime_type || message.document?.mime_type || null,
