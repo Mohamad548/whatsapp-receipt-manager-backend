@@ -1,0 +1,84 @@
+import express from 'express';
+import { saveMessage } from '../services/messageService.js';
+
+const router = express.Router();
+
+// Verify Token برای تایید Webhook توسط Meta
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'MySecret123';
+
+// GET: تایید Webhook توسط Meta
+router.get('/', (req, res) => {
+  const mode = req.query['hub.mode'] as string;
+  const token = req.query['hub.verify_token'] as string;
+  const challenge = req.query['hub.challenge'] as string;
+
+  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    console.log('✅ Webhook verified successfully');
+    return res.status(200).send(challenge);
+  }
+
+  console.log('❌ Webhook verification failed');
+  return res.status(403).send('Forbidden');
+});
+
+// POST: دریافت پیام‌های جدید از WhatsApp
+router.post('/', async (req, res) => {
+  try {
+    const body = req.body;
+    
+    // بررسی ساختار پیام واتساپ
+    if (body.object === 'whatsapp_business_account') {
+      const entries = body.entry;
+      
+      for (const entry of entries) {
+        const changes = entry.changes;
+        
+        for (const change of changes) {
+          if (change.field === 'messages') {
+            const value = change.value;
+            
+            // اگر پیام جدیدی دریافت شده
+            if (value.messages) {
+              const message = value.messages[0];
+              const contact = value.contacts?.[0];
+              
+              // استخراج اطلاعات پیام
+              const messageData = {
+                id: message.id,
+                wa_id: value.metadata?.phone_number_id,
+                sender_phone: message.from,
+                sender_name: contact?.profile?.name || 'نامشخص',
+                content: message.text?.body || message.caption || '',
+                timestamp: new Date(parseInt(value.metadata?.timestamp || Date.now().toString()) * 1000).toISOString(),
+                status: 'NEW',
+                media_url: message.image?.id || message.document?.id || null,
+                mime_type: message.image?.mime_type || message.document?.mime_type || null,
+              };
+
+              console.log('📨 New WhatsApp message received:', JSON.stringify(messageData, null, 2));
+              
+              // ذخیره پیام در دیتابیس
+              try {
+                await saveMessage(messageData);
+                console.log('✅ Message saved to database');
+              } catch (dbError) {
+                console.error('❌ Error saving message to database:', dbError);
+                // ادامه می‌دهیم حتی اگر ذخیره نشد
+              }
+              
+              // TODO: اگر تصویر یا فایل دارید، باید از WhatsApp API آن را دانلود کنید
+            }
+          }
+        }
+      }
+    }
+
+    return res.status(200).json({ status: 'ok' });
+  } catch (error) {
+    console.error('❌ Error processing webhook:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+export default router;
+
