@@ -1,29 +1,66 @@
 import { pool } from '../config/database.js';
 import { WhatsAppMessage, MessageStatus } from '../types/index.js';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-// ایجاد جدول اگر وجود نداشته باشد
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// ایجاد جدول‌ها از فایل schema.sql
 export async function initializeDatabase() {
   const client = await pool.connect();
   try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS messages (
-        id VARCHAR(255) PRIMARY KEY,
-        wa_id VARCHAR(255),
-        sender_phone VARCHAR(50) NOT NULL,
-        sender_name VARCHAR(255),
-        content TEXT,
-        timestamp TIMESTAMP NOT NULL,
-        status VARCHAR(20) NOT NULL DEFAULT 'NEW',
-        media_url TEXT,
-        mime_type VARCHAR(100),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    // خواندن فایل schema.sql
+    const schemaPath = join(__dirname, '../../db/schema.sql');
+    const schema = readFileSync(schemaPath, 'utf-8');
+    
+    // تقسیم به دستورات جداگانه و اجرا
+    const commands = schema
+      .split(';')
+      .map(cmd => cmd.trim())
+      .filter(cmd => 
+        cmd.length > 0 && 
+        !cmd.startsWith('--') && 
+        !cmd.startsWith('CREATE DATABASE') &&
+        !cmd.startsWith('\\c') &&
+        !cmd.startsWith('\\i') &&
+        !cmd.startsWith('\\dt') &&
+        !cmd.startsWith('\\d')
       );
-      
-      CREATE INDEX IF NOT EXISTS idx_status ON messages(status);
-      CREATE INDEX IF NOT EXISTS idx_timestamp ON messages(timestamp DESC);
+
+    for (const command of commands) {
+      if (command.trim()) {
+        try {
+          await client.query(command);
+        } catch (error: any) {
+          // نادیده گرفتن خطاهای "already exists"
+          if (!error.message.includes('already exists') && 
+              !error.message.includes('duplicate') &&
+              !error.message.includes('does not exist')) {
+            console.warn('⚠️  Warning executing command:', error.message);
+          }
+        }
+      }
+    }
+
+    console.log('✅ Database tables initialized successfully');
+    
+    // نمایش جداول ایجاد شده
+    const tables = await client.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+      ORDER BY table_name
     `);
-    console.log('✅ Database initialized successfully');
+    
+    if (tables.rows.length > 0) {
+      console.log('📊 Available tables:');
+      tables.rows.forEach(row => {
+        console.log(`   - ${row.table_name}`);
+      });
+    }
+    
   } catch (error) {
     console.error('❌ Error initializing database:', error);
     throw error;
@@ -112,4 +149,3 @@ export async function updateMessageStatus(id: string, status: MessageStatus) {
     client.release();
   }
 }
-

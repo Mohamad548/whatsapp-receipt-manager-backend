@@ -8,7 +8,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:init": "tsx db/init-database.ts",
+    "db:schema": "echo 'Use db/schema.sql file to create tables manually'"
   },
   "dependencies": {
     "express": "^4.18.2",
